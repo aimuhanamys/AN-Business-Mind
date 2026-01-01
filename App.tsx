@@ -348,16 +348,20 @@ const App: React.FC = () => {
     reader.onload = (e) => {
       try {
         const text = e.target?.result as string;
-        const blocks = text.split(/---\n/).filter(block => block.trim().length > 0 && block.includes('ID:'));
+        // Split by delimiter, handling various newline formats
+        const blocks = text.split(/\n---\n/).filter(block => block.trim().length > 0 && block.includes('ID:'));
+
+        let updatedCount = 0;
+        let addedCount = 0;
 
         const importedItems: KnowledgeItem[] = blocks.map(block => {
-          const typeTitleMatch = block.match(/### \[(.*?)\] (.*)\n/);
-          const idMatch = block.match(/ID: (.*)\n/);
-          const createdMatch = block.match(/Created: (.*)\n/);
-          const contentSplit = block.split(/#### Content:\n/);
+          const typeTitleMatch = block.match(/### \[(.*?)\] (.*)/);
+          const idMatch = block.match(/ID: (.*)/);
+          const createdMatch = block.match(/Created: (.*)/);
+          const contentSplit = block.split(/#### Content:\n|#### Content:\r\n/);
 
           return {
-            id: idMatch?.[1]?.trim() || Date.now().toString(),
+            id: idMatch?.[1]?.trim() || Date.now().toString() + Math.random().toString(36).substr(2, 5),
             type: (typeTitleMatch?.[1]?.trim() as any) || 'note',
             title: typeTitleMatch?.[2]?.trim() || 'Untitled',
             content: contentSplit[1]?.trim() || '',
@@ -367,17 +371,29 @@ const App: React.FC = () => {
 
         if (importedItems.length > 0) {
           setKnowledgeBase(prev => {
-            const existingIds = new Set(prev.map(k => k.id));
-            const newItems = importedItems.filter(item => !existingIds.has(item.id));
-            return [...newItems, ...prev];
+            const newKnowledge = [...prev];
+            importedItems.forEach(imported => {
+              const existingIndex = newKnowledge.findIndex(k => k.id === imported.id);
+              if (existingIndex !== -1) {
+                newKnowledge[existingIndex] = imported;
+                updatedCount++;
+              } else {
+                newKnowledge.unshift(imported);
+                addedCount++;
+              }
+            });
+            return newKnowledge;
           });
-          alert(`Успешно импортировано новых записей: ${importedItems.length}`);
+          alert(`Импорт завершен!\nДобавлено новых: ${addedCount}\nОбновлено существующих: ${updatedCount}`);
         }
       } catch (err) {
+        console.error("Import error:", err);
         alert("Ошибка при чтении Markdown. Убедитесь, что формат файла соответствует экспортированному.");
       }
     };
     reader.readAsText(file);
+    // Reset input so the same file can be imported again if needed
+    event.target.value = '';
   };
 
   const handleDeleteKnowledge = (id: string) => {
