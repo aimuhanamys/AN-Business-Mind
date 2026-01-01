@@ -1,5 +1,11 @@
-/// <reference types="vite/client" />
-import { GoogleGenAI, Content, Part } from "@google/genai";
+interface Content {
+  role: string;
+  parts: Part[];
+}
+
+interface Part {
+  text: string;
+}
 import { KnowledgeItem, ChatMessage, PersonaType } from "../types";
 
 const getSystemInstruction = (knowledgeBase: KnowledgeItem[], persona: PersonaType): string => {
