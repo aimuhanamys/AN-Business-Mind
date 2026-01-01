@@ -7,18 +7,33 @@ export const config = {
 export default async function handler(req: Request) {
     const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY;
 
-    // 1. Simple GET Diagnostic
+    // --- ENHANCED DIAGNOSTIC MODE ---
     if (req.method === 'GET') {
         const url = new URL(req.url);
         if (url.searchParams.get('diag') === '1') {
+            if (!apiKey) return new Response("API Key Missing in Environment", { status: 500 });
+
+            const results: any[] = [];
+            const testModels = ["gemini-1.5-flash", "gemini-1.5-flash-latest", "gemini-2.0-flash-exp", "gemini-pro"];
+
+            for (const m of testModels) {
+                try {
+                    const genAI = new GoogleGenerativeAI(apiKey);
+                    const model = genAI.getGenerativeModel({ model: m }, { apiVersion: 'v1beta' });
+                    const res = await model.generateContent("echo hi");
+                    results.push({ model: m, status: "SUCCESS", response: res.response.text().substring(0, 20) });
+                } catch (e: any) {
+                    results.push({ model: m, status: "FAILED", error: e.message });
+                }
+            }
+
             return new Response(JSON.stringify({
-                status: "Diagnostic Active",
-                apiKeyConfigured: !!apiKey,
-                runtime: "edge",
-                timestamp: new Date().toISOString()
-            }), {
-                headers: { 'Content-Type': 'application/json' },
-                status: 200
+                diagnostic: "Model Probe Results",
+                apiKeyPrefix: apiKey.substring(0, 5) + "...",
+                timestamp: new Date().toISOString(),
+                results
+            }, null, 2), {
+                headers: { 'Content-Type': 'application/json' }
             });
         }
     }
@@ -28,7 +43,7 @@ export default async function handler(req: Request) {
     }
 
     if (!apiKey) {
-        return new Response(JSON.stringify({ error: 'API_KEY is not configured in Vercel environment' }), {
+        return new Response(JSON.stringify({ error: 'API_KEY is not configured' }), {
             headers: { 'Content-Type': 'application/json' },
             status: 500
         });
@@ -40,8 +55,7 @@ export default async function handler(req: Request) {
 
         const genAI = new GoogleGenerativeAI(apiKey);
 
-        // We use gemini-1.5-flash which is the most widely available.
-        // We use v1beta as it supports the native systemInstruction field.
+        // Use gemini-1.5-flash by default as primary
         const model = genAI.getGenerativeModel({
             model: "gemini-1.5-flash",
             systemInstruction: systemInstruction,
@@ -60,11 +74,11 @@ export default async function handler(req: Request) {
         });
 
     } catch (err: any) {
-        console.error('Edge Proxy Error:', err);
+        console.error('Edge Proxy Logic Error:', err);
         return new Response(JSON.stringify({
             error: 'AI Connection Error',
             details: err.message,
-            tip: 'Check your API key and Ensure "Generative Language API" is enabled in Google Cloud Console.'
+            tip: 'If this persists, go to /api/chat?diag=1 to see which models are active for your key.'
         }), {
             headers: { 'Content-Type': 'application/json' },
             status: 500
