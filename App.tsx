@@ -254,7 +254,21 @@ const App: React.FC = () => {
   const handleDeleteSession = (id: string) => {
     const updatedSessions = sessions.filter(s => s.id !== id);
     if (updatedSessions.length === 0) {
-      handleNewSession();
+      // Create a fresh session and set it directly
+      const newSession: ChatSession = {
+        id: Date.now().toString(),
+        title: 'Новый чат',
+        messages: [{
+          id: 'init-' + Date.now(),
+          role: 'model',
+          text: 'Привет. Я начал новый чат. Чем могу помочь?',
+          timestamp: Date.now()
+        }],
+        persona: 'general',
+        updatedAt: Date.now()
+      };
+      setSessions([newSession]);
+      setActiveSessionId(newSession.id);
     } else {
       setSessions(updatedSessions);
       if (activeSessionId === id) {
@@ -574,14 +588,14 @@ const App: React.FC = () => {
       {/* --- KNOWLEDGE TAB --- */}
       {activeTab === 'knowledge' && (
         <div className="flex flex-col h-full bg-ivory-300/30 overflow-y-auto custom-scrollbar">
-          <div className="p-8 max-w-6xl mx-auto w-full">
-            <div className="flex justify-between items-end mb-8 border-b border-white/30 pb-6 relative">
+          <div className="p-4 sm:p-8 max-w-6xl mx-auto w-full">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end mb-8 border-b border-white/30 pb-6 relative gap-4">
               <div className="absolute -bottom-px left-0 w-32 h-0.5 bg-anthracite-600 rounded-full" />
               <div>
-                <h2 className="text-4xl font-black text-anthracite-900 tracking-tighter uppercase italic">Второй Мозг</h2>
-                <p className="text-anthracite-500 font-bold text-sm mt-1 uppercase tracking-widest">Интеграция твоих смыслов • 0.1.0</p>
+                <h2 className="text-3xl sm:text-4xl font-black text-anthracite-900 tracking-tighter uppercase italic">Второй Мозг</h2>
+                <p className="text-anthracite-500 font-bold text-[10px] sm:text-sm mt-1 uppercase tracking-widest">Интеграция твоих смыслов • 0.1.0</p>
               </div>
-              <div className="flex gap-3">
+              <div className="flex flex-wrap gap-2 sm:gap-3 w-full sm:w-auto">
                 <input
                   type="file"
                   id="import-knowledge"
@@ -591,26 +605,26 @@ const App: React.FC = () => {
                 />
                 <button
                   onClick={() => document.getElementById('import-knowledge')?.click()}
-                  className="bg-ivory-50 text-anthracite-800 px-6 py-3 rounded-xl font-bold hover:bg-ivory-100 transition-all shadow-md flex items-center gap-2 border border-anthracite-800/10 active:scale-95"
+                  className="flex-1 sm:flex-none justify-center bg-ivory-50 text-anthracite-800 px-4 sm:px-6 py-3 rounded-xl font-bold hover:bg-ivory-100 transition-all shadow-md flex items-center gap-2 border border-anthracite-800/10 active:scale-95 text-xs sm:text-sm"
                   title="Загрузить знания из файла"
                 >
                   <SendIcon className="w-4 h-4 -rotate-90" />
-                  Импорт
+                  <span className="whitespace-nowrap">Импорт</span>
                 </button>
                 <button
                   onClick={handleExportKnowledge}
-                  className="bg-ivory-50 text-anthracite-800 px-6 py-3 rounded-xl font-bold hover:bg-ivory-100 transition-all shadow-md flex items-center gap-2 border border-anthracite-800/10 active:scale-95"
+                  className="flex-1 sm:flex-none justify-center bg-ivory-50 text-anthracite-800 px-4 sm:px-6 py-3 rounded-xl font-bold hover:bg-ivory-100 transition-all shadow-md flex items-center gap-2 border border-anthracite-800/10 active:scale-95 text-xs sm:text-sm"
                   title="Скачать все знания"
                 >
                   <SendIcon className="w-4 h-4 rotate-90" />
-                  Экспорт
+                  <span className="whitespace-nowrap">Экспорт</span>
                 </button>
                 <button
                   onClick={() => setShowAddModal(true)}
-                  className="bg-anthracite-800 text-ivory-50 px-8 py-3 rounded-xl font-black hover:bg-anthracite-700 transition-all shadow-xl shadow-anthracite-900/20 flex items-center gap-2 active:scale-95 border border-white/10"
+                  className="w-full sm:w-auto justify-center bg-anthracite-800 text-ivory-50 px-6 sm:px-8 py-3 rounded-xl font-black hover:bg-anthracite-700 transition-all shadow-xl shadow-anthracite-900/20 flex items-center gap-2 active:scale-95 border border-white/10 text-xs sm:text-sm"
                 >
                   <PlusIcon className="w-5 h-5" />
-                  Добавить знание
+                  <span className="whitespace-nowrap">Добавить знание</span>
                 </button>
               </div>
             </div>

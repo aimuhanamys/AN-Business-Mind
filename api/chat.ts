@@ -10,16 +10,28 @@ export default async function handler(req: Request) {
     }
 
     try {
-        const { contents, systemInstruction } = await req.json();
+        const body = await req.json();
+        const { contents, systemInstruction } = body;
+
         const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY;
 
         if (!apiKey) {
-            return new Response(JSON.stringify({ error: 'API_KEY not found' }), { status: 500 });
+            return new Response(JSON.stringify({ error: 'API_KEY is missing in Vercel environment' }), {
+                status: 500,
+                headers: { 'Content-Type': 'application/json' }
+            });
+        }
+
+        if (!contents || !Array.isArray(contents)) {
+            return new Response(JSON.stringify({ error: 'Invalid contents format' }), {
+                status: 400,
+                headers: { 'Content-Type': 'application/json' }
+            });
         }
 
         const genAI = new GoogleGenerativeAI(apiKey);
         const model = genAI.getGenerativeModel({
-            model: "gemini-2.0-flash", // Using stable flash for production
+            model: "gemini-1.5-flash", // More reliable availability
             systemInstruction: systemInstruction,
         });
 
