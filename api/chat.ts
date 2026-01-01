@@ -55,8 +55,8 @@ export default async function handler(req: Request) {
 
         const genAI = new GoogleGenerativeAI(apiKey);
 
-        // Models to try in order of preference
-        const modelsToTry = ["gemini-1.5-flash", "gemini-1.5-flash-latest", "gemini-2.0-flash-exp"];
+        // Models to try in order of preference (Gemini 2.x)
+        const modelsToTry = ["gemini-2.0-flash", "gemini-2.5-flash", "gemini-2.0-flash-exp"];
         let lastError: any = null;
 
         for (const modelName of modelsToTry) {
