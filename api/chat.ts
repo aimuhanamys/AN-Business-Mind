@@ -55,23 +55,37 @@ export default async function handler(req: Request) {
 
         const genAI = new GoogleGenerativeAI(apiKey);
 
-        // Use gemini-1.5-flash by default as primary
-        const model = genAI.getGenerativeModel({
-            model: "gemini-1.5-flash",
-            systemInstruction: systemInstruction,
-        }, { apiVersion: 'v1beta' });
+        // Models to try in order of preference
+        const modelsToTry = ["gemini-1.5-flash", "gemini-1.5-flash-latest", "gemini-2.0-flash-exp"];
+        let lastError: any = null;
 
-        const result = await model.generateContent({
-            contents: contents,
-        });
+        for (const modelName of modelsToTry) {
+            try {
+                const model = genAI.getGenerativeModel({
+                    model: modelName,
+                    systemInstruction: systemInstruction,
+                }, { apiVersion: 'v1beta' });
 
-        const response = await result.response;
-        const text = response.text();
+                const result = await model.generateContent({
+                    contents: contents,
+                });
 
-        return new Response(JSON.stringify({ text }), {
-            headers: { 'Content-Type': 'application/json' },
-            status: 200
-        });
+                const response = await result.response;
+                const text = response.text();
+
+                return new Response(JSON.stringify({ text, usedModel: modelName }), {
+                    headers: { 'Content-Type': 'application/json' },
+                    status: 200
+                });
+            } catch (modelErr: any) {
+                console.error(`Model ${modelName} failed:`, modelErr.message);
+                lastError = modelErr;
+                // Continue to next model
+            }
+        }
+
+        // All models failed
+        throw lastError || new Error('All models failed');
 
     } catch (err: any) {
         console.error('Edge Proxy Logic Error:', err);

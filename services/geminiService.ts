@@ -88,7 +88,8 @@ export const sendMessageToGemini = async (
 
     if (!response.ok) {
       const errorData = await response.json();
-      throw new Error(errorData.error || 'Server responded with ' + response.status);
+      const details = errorData.details || errorData.error || 'Server responded with ' + response.status;
+      throw new Error(details);
     }
 
     const data = await response.json();
