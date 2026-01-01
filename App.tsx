@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Layout } from './components/Layout';
 import { KnowledgeCard } from './components/KnowledgeCard';
-import { PlusIcon, SendIcon, SettingsIcon, XIcon, PencilIcon, LockIcon } from './components/Icons';
+import { PlusIcon, SendIcon, SettingsIcon, XIcon, PencilIcon, LockIcon, EyeIcon, EyeOffIcon } from './components/Icons';
 import { SessionList } from './components/SessionList';
 import { KnowledgeItem, ChatMessage, PersonaType, ChatSession } from './types';
 import { sendMessageToGemini } from './services/geminiService';
@@ -34,6 +34,7 @@ const App: React.FC = () => {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authId, setAuthId] = useState('');
   const [authPassword, setAuthPassword] = useState('');
+  const [showAuthPassword, setShowAuthPassword] = useState(false);
 
   const [userId, setUserId] = useState<string>(() => {
     return localStorage.getItem('an_mind_user_id') || '';
@@ -150,6 +151,24 @@ const App: React.FC = () => {
       setIsSyncing(false);
     }
   };
+
+  // Mobile Keyboard Handling
+  useEffect(() => {
+    if (!window.visualViewport) return;
+
+    const handleResize = () => {
+      const vh = window.visualViewport?.height || window.innerHeight;
+      const offset = window.innerHeight - vh;
+      document.documentElement.style.setProperty('--keyboard-offset', `${offset}px`);
+    };
+
+    window.visualViewport.addEventListener('resize', handleResize);
+    window.visualViewport.addEventListener('scroll', handleResize);
+    return () => {
+      window.visualViewport?.removeEventListener('resize', handleResize);
+      window.visualViewport?.removeEventListener('scroll', handleResize);
+    };
+  }, []);
 
   // Check auth on mount if credentials exist
   useEffect(() => {
@@ -519,7 +538,10 @@ const App: React.FC = () => {
           </div>
 
           {/* Input */}
-          <div className="p-4 bg-transparent border-t border-white/20 relative">
+          <div
+            className="p-4 bg-transparent border-t border-white/20 relative pb-[env(safe-area-inset-bottom)]"
+            style={{ marginBottom: 'var(--keyboard-offset, 0px)' }}
+          >
             <div className="max-w-4xl mx-auto relative flex items-end gap-2 bg-ivory-50/40 backdrop-blur-2xl p-2 rounded-2xl border border-white/50 focus-within:ring-2 focus-within:ring-anthracite-500/20 focus-within:border-anthracite-500/40 transition-all shadow-2xl">
               <textarea
                 value={inputMessage}
@@ -557,7 +579,7 @@ const App: React.FC = () => {
               <div className="absolute -bottom-px left-0 w-32 h-0.5 bg-anthracite-600 rounded-full" />
               <div>
                 <h2 className="text-4xl font-black text-anthracite-900 tracking-tighter uppercase italic">Второй Мозг</h2>
-                <p className="text-anthracite-500 font-bold text-sm mt-1 uppercase tracking-widest">Интеграция твоих смыслов • 0.0.1</p>
+                <p className="text-anthracite-500 font-bold text-sm mt-1 uppercase tracking-widest">Интеграция твоих смыслов • 0.1.0</p>
               </div>
               <div className="flex gap-3">
                 <input
@@ -807,13 +829,22 @@ const App: React.FC = () => {
 
               <div>
                 <label className="block text-[10px] font-black text-anthracite-400 uppercase tracking-widest mb-1.5 ml-1">Пароль</label>
-                <input
-                  type="password"
-                  value={authPassword}
-                  onChange={(e) => setAuthPassword(e.target.value)}
-                  placeholder="Придумайте пароль"
-                  className="w-full bg-white border-2 border-anthracite-100 rounded-2xl px-5 py-4 focus:outline-none focus:border-anthracite-600 transition-all font-bold text-anthracite-900 shadow-inner"
-                />
+                <div className="relative">
+                  <input
+                    type={showAuthPassword ? "text" : "password"}
+                    value={authPassword}
+                    onChange={(e) => setAuthPassword(e.target.value)}
+                    placeholder="Придумайте пароль"
+                    className="w-full bg-white border-2 border-anthracite-100 rounded-2xl px-5 py-4 pr-12 focus:outline-none focus:border-anthracite-600 transition-all font-bold text-anthracite-900 shadow-inner"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowAuthPassword(!showAuthPassword)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-anthracite-400 hover:text-anthracite-600 transition-colors"
+                  >
+                    {showAuthPassword ? <EyeOffIcon className="w-5 h-5" /> : <EyeIcon className="w-5 h-5" />}
+                  </button>
+                </div>
               </div>
 
               <div className="bg-anthracite-50 p-4 rounded-2xl border border-anthracite-100">
