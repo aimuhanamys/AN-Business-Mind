@@ -31,7 +31,7 @@ export default async function handler(req: Request) {
 
         const genAI = new GoogleGenerativeAI(apiKey);
         const model = genAI.getGenerativeModel({
-            model: "gemini-1.5-flash", // More reliable availability
+            model: "gemini-2.0-flash-exp", // Experimental model usually available on v1beta
             systemInstruction: systemInstruction,
         });
 
