@@ -32,11 +32,26 @@ export default async function handler(req: Request) {
         const genAI = new GoogleGenerativeAI(apiKey);
         const model = genAI.getGenerativeModel({
             model: "gemini-1.5-flash",
-            systemInstruction: systemInstruction,
-        }, { apiVersion: 'v1beta' });
+        }, { apiVersion: 'v1' });
+
+        // Add system instruction as part of history preamble for 100% compatibility
+        const messages = [];
+        if (systemInstruction) {
+            messages.push({
+                role: 'user',
+                parts: [{ text: `ИНСТРУКЦИЯ И КОНТЕКСТ: ${systemInstruction}\n\nПожалуйста, подтверди, что ты готов работать в этом режиме.` }]
+            });
+            messages.push({
+                role: 'model',
+                parts: [{ text: "Принято. Я готов работать в качестве вашего 'Второго Мозга' и использовать предоставленные знания для глубоких бизнес-ответов. Чем я могу помочь?" }]
+            });
+        }
+
+        // Append actual conversation contents
+        messages.push(...contents);
 
         const result = await model.generateContent({
-            contents: contents,
+            contents: messages,
         });
 
         const response = await result.response;
