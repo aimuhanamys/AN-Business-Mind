@@ -32,11 +32,19 @@ export default async function handler(req: Request) {
         const genAI = new GoogleGenerativeAI(apiKey);
         const model = genAI.getGenerativeModel({
             model: "gemini-1.5-flash",
-            systemInstruction: systemInstruction,
         }, { apiVersion: 'v1' });
 
+        // Add system instruction as part of messages if it exists
+        const messages = [...contents];
+        if (systemInstruction) {
+            messages.unshift({
+                role: 'system',
+                parts: [{ text: systemInstruction }]
+            });
+        }
+
         const result = await model.generateContent({
-            contents: contents,
+            contents: messages,
         });
 
         const response = await result.response;
