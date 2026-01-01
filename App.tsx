@@ -553,7 +553,7 @@ const App: React.FC = () => {
                   }
                 }}
                 placeholder="Спроси о бизнесе..."
-                className="w-full bg-transparent text-anthracite-900 placeholder-anthracite-300 resize-none outline-none p-2 min-h-[44px] max-h-32 text-sm font-medium"
+                className="w-full bg-transparent text-anthracite-900 placeholder-anthracite-300 resize-none outline-none p-2 min-h-[44px] max-h-32 text-sm font-medium caret-anthracite-400"
                 rows={1}
               />
               <button
@@ -804,7 +804,13 @@ const App: React.FC = () => {
       {/* Access Security Modal */}
       {showAuthModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-anthracite-950/80 backdrop-blur-md">
-          <div className="bg-ivory-100 rounded-3xl w-full max-w-md p-8 shadow-2xl border border-white/20 transform animate-in zoom-in-95 duration-300">
+          <div className="bg-ivory-100 rounded-3xl w-full max-w-md p-8 shadow-2xl border border-white/20 transform animate-in zoom-in-95 duration-300 relative">
+            <button
+              onClick={() => setShowAuthModal(false)}
+              className="absolute top-6 right-6 p-2 text-anthracite-300 hover:text-anthracite-600 transition-colors active:scale-95"
+            >
+              <XIcon className="w-6 h-6" />
+            </button>
             <div className="flex items-center gap-3 mb-6">
               <div className="w-12 h-12 bg-anthracite-800 rounded-2xl flex items-center justify-center shadow-lg">
                 <LockIcon className="text-white w-6 h-6" />
@@ -823,7 +829,7 @@ const App: React.FC = () => {
                   value={authId}
                   onChange={(e) => setAuthId(e.target.value)}
                   placeholder="Введите уникальный ID"
-                  className="w-full bg-white border-2 border-anthracite-100 rounded-2xl px-5 py-4 focus:outline-none focus:border-anthracite-600 transition-all font-bold text-anthracite-900 shadow-inner"
+                  className="w-full bg-white border-2 border-anthracite-100 rounded-2xl px-5 py-4 focus:outline-none focus:border-anthracite-600 transition-all font-bold text-anthracite-900 shadow-inner caret-anthracite-400"
                 />
               </div>
 
@@ -835,7 +841,7 @@ const App: React.FC = () => {
                     value={authPassword}
                     onChange={(e) => setAuthPassword(e.target.value)}
                     placeholder="Придумайте пароль"
-                    className="w-full bg-white border-2 border-anthracite-100 rounded-2xl px-5 py-4 pr-12 focus:outline-none focus:border-anthracite-600 transition-all font-bold text-anthracite-900 shadow-inner"
+                    className="w-full bg-white border-2 border-anthracite-100 rounded-2xl px-5 py-4 pr-12 focus:outline-none focus:border-anthracite-600 transition-all font-bold text-anthracite-900 shadow-inner caret-anthracite-400"
                   />
                   <button
                     type="button"
