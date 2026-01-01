@@ -54,11 +54,13 @@ export default async function handler(req: Request) {
         const { contents, systemInstruction } = body;
 
         const genAI = new GoogleGenerativeAI(apiKey);
+        const groqApiKey = process.env.GROQ_API_KEY;
 
         // Models to try in order of preference (Gemini 2.x)
         const modelsToTry = ["gemini-2.0-flash", "gemini-2.5-flash", "gemini-2.0-flash-exp"];
         let lastError: any = null;
 
+        // Try Gemini models first
         for (const modelName of modelsToTry) {
             try {
                 const model = genAI.getGenerativeModel({
@@ -73,26 +75,74 @@ export default async function handler(req: Request) {
                 const response = await result.response;
                 const text = response.text();
 
-                return new Response(JSON.stringify({ text, usedModel: modelName }), {
+                return new Response(JSON.stringify({ text, usedModel: modelName, provider: 'gemini' }), {
                     headers: { 'Content-Type': 'application/json' },
                     status: 200
                 });
             } catch (modelErr: any) {
-                console.error(`Model ${modelName} failed:`, modelErr.message);
+                console.error(`Gemini ${modelName} failed:`, modelErr.message);
                 lastError = modelErr;
-                // Continue to next model
             }
         }
 
-        // All models failed
-        throw lastError || new Error('All models failed');
+        // Fallback to Groq if all Gemini models failed
+        if (groqApiKey) {
+            try {
+                console.log('All Gemini models failed, trying Groq fallback...');
+
+                // Convert Gemini format to OpenAI format for Groq
+                const messages = [];
+                if (systemInstruction) {
+                    messages.push({ role: 'system', content: systemInstruction });
+                }
+                for (const content of contents) {
+                    messages.push({
+                        role: content.role === 'model' ? 'assistant' : content.role,
+                        content: content.parts.map((p: any) => p.text).join('')
+                    });
+                }
+
+                const groqResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${groqApiKey}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        model: 'llama-3.3-70b-versatile',
+                        messages: messages,
+                        max_tokens: 4096,
+                        temperature: 0.7
+                    })
+                });
+
+                if (!groqResponse.ok) {
+                    const errData = await groqResponse.json();
+                    throw new Error(errData.error?.message || 'Groq API error');
+                }
+
+                const groqData = await groqResponse.json();
+                const text = groqData.choices?.[0]?.message?.content || '';
+
+                return new Response(JSON.stringify({ text, usedModel: 'llama-3.3-70b-versatile', provider: 'groq' }), {
+                    headers: { 'Content-Type': 'application/json' },
+                    status: 200
+                });
+            } catch (groqErr: any) {
+                console.error('Groq fallback failed:', groqErr.message);
+                lastError = groqErr;
+            }
+        }
+
+        // All providers failed
+        throw lastError || new Error('All AI providers failed');
 
     } catch (err: any) {
         console.error('Edge Proxy Logic Error:', err);
         return new Response(JSON.stringify({
             error: 'AI Connection Error',
             details: err.message,
-            tip: 'If this persists, go to /api/chat?diag=1 to see which models are active for your key.'
+            tip: 'All AI providers (Gemini + Groq) failed. Check your API keys and quotas.'
         }), {
             headers: { 'Content-Type': 'application/json' },
             status: 500
