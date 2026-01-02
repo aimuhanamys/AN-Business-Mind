@@ -197,7 +197,30 @@ const App: React.FC = () => {
         if (kData && kData.length > 0) setKnowledgeBase(kData);
 
         const { data: sData } = await supabase.from('sessions').select('*').eq('user_id', userId);
-        if (sData && sData.length > 0) setSessions(sData);
+        if (sData && sData.length > 0) {
+          // Use remote sessions as the single source of truth
+          setSessions(sData);
+          // Set active session to first one if current is not in the list
+          if (!sData.some(s => s.id === activeSessionId)) {
+            setActiveSessionId(sData[0].id);
+          }
+        } else {
+          // No remote sessions - create a default one
+          const defaultSession: ChatSession = {
+            id: Date.now().toString(),
+            title: 'Новый чат',
+            messages: [{
+              id: 'init-' + Date.now(),
+              role: 'model',
+              text: 'Привет. Я — AN Business Mind, твой второй мозг. Я готов помочь с бизнес-задачами.',
+              timestamp: Date.now()
+            }],
+            persona: 'general',
+            updatedAt: Date.now()
+          };
+          setSessions([defaultSession]);
+          setActiveSessionId(defaultSession.id);
+        }
       } catch (e) { }
       setIsSyncing(false);
     };
@@ -251,8 +274,18 @@ const App: React.FC = () => {
     setActiveSessionId(newSession.id);
   };
 
-  const handleDeleteSession = (id: string) => {
+  const handleDeleteSession = async (id: string) => {
     const updatedSessions = sessions.filter(s => s.id !== id);
+
+    // Delete from Supabase if authorized
+    if (isAuthorized && userId) {
+      try {
+        await supabase.from('sessions').delete().eq('id', id).eq('user_id', userId);
+      } catch (e) {
+        console.error('Failed to delete session from Supabase:', e);
+      }
+    }
+
     if (updatedSessions.length === 0) {
       // Create a fresh session and set it directly
       const newSession: ChatSession = {
