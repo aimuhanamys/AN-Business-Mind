@@ -60,38 +60,11 @@ export default async function handler(req: Request) {
         const modelsToTry = ["gemini-2.0-flash", "gemini-2.5-flash", "gemini-2.0-flash-exp"];
         let lastError: any = null;
 
-        // Try Gemini models first
-        for (const modelName of modelsToTry) {
-            try {
-                const model = genAI.getGenerativeModel({
-                    model: modelName,
-                    systemInstruction: systemInstruction,
-                }, { apiVersion: 'v1beta' });
-
-                const result = await model.generateContent({
-                    contents: contents,
-                });
-
-                const response = await result.response;
-                const text = response.text();
-
-                return new Response(JSON.stringify({ text, usedModel: modelName, provider: 'gemini' }), {
-                    headers: { 'Content-Type': 'application/json' },
-                    status: 200
-                });
-            } catch (modelErr: any) {
-                console.error(`Gemini ${modelName} failed:`, modelErr.message);
-                lastError = modelErr;
-            }
-        }
-
-        // Fallback to Groq if all Gemini models failed
+        // PRIORITY 1: Try Groq (High limits, reliable)
         if (groqApiKey) {
             try {
-                console.log('All Gemini models failed, trying Groq fallback...');
-
-                // Convert Gemini format to OpenAI format for Groq
-                const messages = [];
+                // Convert Gemini content format to OpenAI format for Groq
+                const messages: any[] = [];
                 if (systemInstruction) {
                     messages.push({ role: 'system', content: systemInstruction });
                 }
@@ -117,8 +90,9 @@ export default async function handler(req: Request) {
                 });
 
                 if (!groqResponse.ok) {
-                    const errData = await groqResponse.json();
-                    throw new Error(errData.error?.message || 'Groq API error');
+                    const errData = await groqResponse.json().catch(() => ({}));
+                    console.error('Groq API Error:', errData);
+                    throw new Error(errData.error?.message || `Groq responded with ${groqResponse.status}`);
                 }
 
                 const groqData = await groqResponse.json();
@@ -128,9 +102,35 @@ export default async function handler(req: Request) {
                     headers: { 'Content-Type': 'application/json' },
                     status: 200
                 });
+
             } catch (groqErr: any) {
-                console.error('Groq fallback failed:', groqErr.message);
+                console.error('Groq failed, switching to Gemini:', groqErr.message);
                 lastError = groqErr;
+            }
+        }
+
+        // PRIORITY 2: Gemini Fallback
+        for (const modelName of modelsToTry) {
+            try {
+                const model = genAI.getGenerativeModel({
+                    model: modelName,
+                    systemInstruction: systemInstruction,
+                }, { apiVersion: 'v1beta' });
+
+                const result = await model.generateContent({
+                    contents: contents,
+                });
+
+                const response = await result.response;
+                const text = response.text();
+
+                return new Response(JSON.stringify({ text, usedModel: modelName, provider: 'gemini' }), {
+                    headers: { 'Content-Type': 'application/json' },
+                    status: 200
+                });
+            } catch (modelErr: any) {
+                console.error(`Gemini ${modelName} failed:`, modelErr.message);
+                lastError = modelErr;
             }
         }
 
